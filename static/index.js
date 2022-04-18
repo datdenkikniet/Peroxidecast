@@ -7,21 +7,27 @@ async function get_mount_info() {
     return json
 }
 
-async function create_mount_info() {
-    const mounts = await get_mount_info()
-    for (const mount of mounts) {
-        const display = template.content.cloneNode(true);
-        display.querySelector(".rename").id = btoa(mount.name)
-        container.appendChild(display)
+function get_name(name) {
+    var result = 'a'
+    for (var i = 0; i < name.length; i++) {
+        result += name.charCodeAt(i).toString(16)
     }
-    update_mount_info(mounts)
+    return result
 }
 
 function update_mount_info(mounts) {
     const mount_names = []
     for (const mount of mounts) {
-        console.log(mount)
-        const display = document.querySelector("#" + btoa(mount.name))
+        const id = get_name(mount.name)
+        let display = document.querySelector("#" + id)
+
+        if (!display) {
+            const cloned = template.content.cloneNode(true);
+            cloned.querySelector(".rename").id = id
+            container.appendChild(cloned)
+            display = document.querySelector("#" + id)
+        }
+
         display.hidden = false
         display.querySelector(".name").textContent = mount.name
 
@@ -59,7 +65,7 @@ function update_mount_info(mounts) {
             subs.hidden = true
             song_name.hidden = true
         }
-        mount_names.push(btoa(mount.name))
+        mount_names.push(id)
     }
 
     for (const container of document.querySelectorAll(".mount_display")) {
@@ -70,9 +76,8 @@ function update_mount_info(mounts) {
 
 }
 
-create_mount_info()
-
+get_mount_info().then(update_mount_info)
 setInterval(() => {
-    get_mount_info().then((mounts) => update_mount_info(mounts))
+    get_mount_info().then(update_mount_info)
 
 }, 10000)
