@@ -1,0 +1,15 @@
+admin_username = 'admin_username'
+admin_password = 'admin_password'
+allow_unauthenticated_mounts = true
+
+[mounts."/test1"]
+source_auth = 'source_auth'
+sub_auth = 'sub_auth'
+url_type = 'hostname'
+permanent = false
+
+[mounts."/test2"]
+source_auth = 'Basic dXNlcm5hbWU6cGFzc3dvcmQ='
+url_type = 'static'
+url_value = 'Here'
+permanent = true
