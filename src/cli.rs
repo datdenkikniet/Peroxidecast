@@ -22,6 +22,10 @@ pub struct CliArgs {
     /// new mountpoints without authentication
     #[clap(short = 'A', long)]
     allow_unauthenticated_mounts: bool,
+
+    /// The directory from which to serve static files from.
+    #[clap(short, long)]
+    static_files_dir: Option<PathBuf>,
 }
 
 impl Into<Config> for CliArgs {
@@ -47,6 +51,7 @@ impl Into<Config> for CliArgs {
         });
 
         let my_config = Config {
+            static_source_dir: self.static_files_dir,
             admin_authorization: self.admin_authorization,
             allow_unauthenticated_mounts: self.allow_unauthenticated_mounts,
             default_stream_url: None,

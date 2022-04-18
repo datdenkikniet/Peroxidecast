@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use clap::StructOpt;
 use cli::CliArgs;
 use config::Config;
-use log::{error, info};
+use log::{debug, error};
 use net::SocketHandler;
 use state::{IceMeta, Mount, State, Stats};
 use tokio::{net::TcpListener, sync::RwLock};
@@ -54,10 +54,10 @@ async fn main() {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(5)).await;
-            info!(
-                "{}",
-                serde_json::to_string(&state_clone.read().await.get_mount_stats()).unwrap()
-            );
+            debug!("Mount stats:");
+            for stat in state_clone.read().await.get_mount_stats() {
+                debug!("{}: {}", stat.0, stat.1)
+            }
             state_clone.write().await.clean_disconnected_mounts();
         }
     });

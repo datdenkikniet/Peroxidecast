@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +15,7 @@ pub struct MountConfig {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
+    pub static_source_dir: Option<PathBuf>,
     pub default_stream_url: Option<StreamUrl>,
     pub admin_authorization: Option<String>,
     pub allow_unauthenticated_mounts: bool,
@@ -29,6 +30,7 @@ impl Config {
     pub fn merge(self, other: Config) -> Self {
         // TODO log when settings are overwritten/ignored
 
+        let static_source_dir = other.static_source_dir.or(self.static_source_dir);
         let default_stream_url = other.default_stream_url.or(self.default_stream_url);
         let admin_authorization = other.admin_authorization.or(self.admin_authorization);
         let allow_unauthenticated_mounts =
@@ -39,6 +41,7 @@ impl Config {
         }
 
         Self {
+            static_source_dir,
             default_stream_url,
             admin_authorization,
             allow_unauthenticated_mounts,

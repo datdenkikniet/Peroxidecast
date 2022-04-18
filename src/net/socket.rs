@@ -1,7 +1,7 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc, time::Instant};
 
 use httparse::{Header, Request};
-use log::{debug, trace};
+use log::{debug, trace, warn};
 use tokio::{
     io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader},
     net::{
@@ -230,6 +230,63 @@ impl SocketHandler {
         }
     }
 
+    pub async fn static_file(&mut self, uri: &str) {
+        let stripped = &uri["/static/".len()..];
+        let write_half = &mut self.socket.1;
+
+        if let Some(static_sources) = &self.config.static_source_dir {
+            let mut path = static_sources.clone();
+
+            for part in stripped.split("/") {
+                if part == "." || part == ".." || part == "~" {
+                    BasicHttpResponse::NOT_FOUND.send(write_half).await;
+                    return;
+                }
+            }
+
+            path.push(stripped);
+            debug!("Serving file {:?} to {:?}", path, self.remote_addr);
+
+            if let Ok(file) = std::fs::metadata(path.clone()) {
+                let file_length = file.len();
+                if file.is_dir() {
+                    BasicHttpResponse::NOT_FOUND.send(write_half).await;
+                } else {
+                    let mut file = if let Ok(file) = tokio::fs::File::open(path.clone()).await {
+                        file
+                    } else {
+                        BasicHttpResponse::NOT_FOUND.send(write_half).await;
+                        return;
+                    };
+
+                    let content_length = format!("Content-Length: {}", file_length);
+                    let mime_type = format!(
+                        "Content-Type: {}",
+                        mime_guess::from_path(path.clone()).first_or(mime_guess::mime::TEXT_PLAIN)
+                    );
+                    BasicHttpResponse::ok(&[&content_length, &mime_type])
+                        .send(write_half)
+                        .await;
+
+                    let mut buffer = [0u8; 32 * 1024];
+                    while let Ok(data) = file.read(&mut buffer).await {
+                        if data == 0 {
+                            break;
+                        }
+                        if let Err(_) = write_half.write_all(&buffer[..data]).await {
+                            break;
+                        }
+                    }
+                }
+            } else {
+                BasicHttpResponse::NOT_FOUND.send(write_half).await;
+            }
+        } else {
+            warn!("Got request for static files, but no static file path is configured!");
+            BasicHttpResponse::NOT_FOUND.send(write_half).await;
+        }
+    }
+
     pub async fn run(mut self) {
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut request_buffer = Vec::with_capacity(2048);
@@ -261,8 +318,23 @@ impl SocketHandler {
             return;
         };
 
-        if uri == "/mount_info" {
+        if uri == "/favicon.ico" || uri == "/" || uri.starts_with("/static/") {
+            let uri = if uri == "/" {
+                "/static/index.html"
+            } else if uri == "/favicon.ico" {
+                "/static/favicon.ico"
+            } else {
+                uri
+            };
+            self.static_file(uri).await;
+        } else if uri == "/mount_info" {
+            let start = Instant::now();
             self.mount_info(request, method).await;
+            let duration = Instant::now().duration_since(start);
+            trace!(
+                "Computed and responded with mount info in {}",
+                humantime::format_duration(duration)
+            );
         } else if uri.starts_with("/admin/") {
             self.admin(uri, request).await;
             return;

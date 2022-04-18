@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+<head>
+    <script src="/static/index.js" type="module"></script>
+</head>
+
+<template id="mount_display">
+    <div hidden class="mount_container" id="rename">
+        <h2 id="name"></h2>
+        <p>Currently online: <span id="on_air"></span></p>
+        <p id="subs"></p>
+        <video controls="" id="stream_url">
+        </video>
+        <p id="stream_url_copy_p">Copy the link below to play this stream with VLC:</p>
+        <input type="text" id="stream_url_copy" readonly></a>
+    </div>
+</template>
+
+<body>
+    <h1>Hydroxidecast</h1>
+    <div id="mount_container"></div>
+</body>

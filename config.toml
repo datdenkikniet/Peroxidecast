@@ -1,5 +1,6 @@
 admin_authorization = 'Basic YWRtaW46YWRtaW4='
 allow_unauthenticated_mounts = true
+static_source_dir = "static/"
 
 [mounts."/test1"]
 source_auth = 'source_auth'

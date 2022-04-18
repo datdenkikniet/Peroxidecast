@@ -1,7 +1,9 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
+use bytesize::ByteSize;
 use httparse::Header;
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     watch::{Receiver as WatchReceiver, Sender as WatchSender},
@@ -30,12 +32,24 @@ impl Stats {
     }
 }
 
+impl Display for Stats {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&format!(
+            "sub count: {}, bytes in: {}, bytes out: {}",
+            self.sub_count,
+            ByteSize(self.bytes_in as u64),
+            ByteSize(self.bytes_out as u64)
+        ))
+    }
+}
+
 pub type StatReceiver = WatchReceiver<Stats>;
 pub type StatSender = WatchSender<Stats>;
 
 pub type SubSender = UnboundedSender<UnboundedSender<Vec<u8>>>;
 pub type SubReceiver = UnboundedReceiver<UnboundedSender<Vec<u8>>>;
 
+#[skip_serializing_none]
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct IceMeta {
