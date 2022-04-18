@@ -273,6 +273,7 @@ impl SocketHandler {
 
             let connector = Connector::parse(
                 self.remote_addr,
+                self.config,
                 self.state,
                 method,
                 uri,

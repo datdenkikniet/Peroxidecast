@@ -14,7 +14,10 @@ use tokio::{
     },
 };
 
-use crate::state::{IceMeta, Mount, StatSender, State, Stats, SubReceiver};
+use crate::{
+    config::Config,
+    state::{IceMeta, Mount, StatSender, State, Stats, SubReceiver},
+};
 
 use super::BasicHttpResponse;
 
@@ -78,6 +81,7 @@ where
 {
     pub async fn parse(
         remote: T,
+        config: &Config,
         state: Arc<RwLock<State>>,
         method: &str,
         mount_path: &str,
@@ -151,6 +155,10 @@ where
                 mount.stats()
             } else {
                 trace!("{:?} ICE metadata: {:?}", remote, meta);
+
+                if !config.allow_unauthenticated_mounts {
+                    error!(Unauthorized);
+                }
 
                 let mount = Mount::new(
                     content_type.to_string(),
