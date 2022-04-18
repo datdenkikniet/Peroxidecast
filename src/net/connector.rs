@@ -97,6 +97,14 @@ where
         let authorization = authorization.map(|s| s.to_string());
         trace!("Parsing TCP request from {:?}", remote);
 
+        let is_admin = authorization
+            .as_ref()
+            .map(|a| {
+                config.admin_authorization.is_some()
+                    && Some(a) == config.admin_authorization.as_ref()
+            })
+            .unwrap_or(false);
+
         macro_rules! error {
             ($variant: tt) => {
                 return Err((CreateConnectorError::$variant, write_half, read_half));
@@ -131,7 +139,7 @@ where
                 );
 
                 let auth = mount.source_auth();
-                if !auth.is_none() && auth != &authorization.map(|v| v.to_string()) {
+                if !is_admin && !auth.is_none() && auth != &authorization.map(|v| v.to_string()) {
                     error!(Unauthorized);
                 }
 
@@ -156,7 +164,7 @@ where
             } else {
                 trace!("{:?} ICE metadata: {:?}", remote, meta);
 
-                if !config.allow_unauthenticated_mounts {
+                if !is_admin && !config.allow_unauthenticated_mounts {
                     error!(Unauthorized);
                 }
 

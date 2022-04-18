@@ -22,8 +22,7 @@ pub struct MountConfig {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
-    pub admin_username: Option<String>,
-    pub admin_password: Option<String>,
+    pub admin_authorization: Option<String>,
     pub allow_unauthenticated_mounts: bool,
     pub mounts: BTreeMap<String, MountConfig>,
 }
@@ -36,8 +35,7 @@ impl Config {
     pub fn merge(self, other: Config) -> Self {
         // TODO log when settings are overwritten/ignored
 
-        let admin_username = other.admin_username.or(self.admin_username);
-        let admin_password = other.admin_password.or(self.admin_password);
+        let admin_authorization = other.admin_authorization.or(self.admin_authorization);
         let allow_unauthenticated_mounts =
             other.allow_unauthenticated_mounts || self.allow_unauthenticated_mounts;
         let mut mounts = self.mounts;
@@ -46,8 +44,7 @@ impl Config {
         }
 
         Self {
-            admin_username,
-            admin_password,
+            admin_authorization,
             allow_unauthenticated_mounts,
             mounts,
         }

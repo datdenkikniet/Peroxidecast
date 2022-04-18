@@ -1,5 +1,4 @@
-admin_username = 'admin_username'
-admin_password = 'admin_password'
+admin_authorization = 'Basic YWRtaW46YWRtaW4='
 allow_unauthenticated_mounts = true
 
 [mounts."/test1"]

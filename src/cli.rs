@@ -13,13 +13,10 @@ pub struct CliArgs {
     #[clap(short = 'f', long)]
     config_file: Option<PathBuf>,
 
-    /// The username for the administrator user
-    #[clap(short = 'u', long)]
-    admin_username: Option<String>,
-
-    /// The password for the administrator user
-    #[clap(short = 'p', long)]
-    admin_password: Option<String>,
+    /// The authorization header to treat as admin
+    /// authorization
+    #[clap(short = 'a', long)]
+    admin_authorization: Option<String>,
 
     /// Allow clients that connect with a SOURCE request to create
     /// new mountpoints without authentication
@@ -50,8 +47,7 @@ impl Into<Config> for CliArgs {
         });
 
         let my_config = Config {
-            admin_username: self.admin_username,
-            admin_password: self.admin_password,
+            admin_authorization: self.admin_authorization,
             allow_unauthenticated_mounts: self.allow_unauthenticated_mounts,
             mounts: BTreeMap::new(),
         };

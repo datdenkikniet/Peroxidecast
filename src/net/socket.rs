@@ -65,7 +65,7 @@ impl<'a> BasicHttpResponse<'a> {
 }
 
 pub struct SocketHandler {
-    config: &'static Config,
+    config: Config,
     state: Arc<RwLock<State>>,
     local_addr: SocketAddr,
     remote_addr: SocketAddr,
@@ -74,7 +74,7 @@ pub struct SocketHandler {
 
 impl SocketHandler {
     pub fn new(
-        config: &'static Config,
+        config: Config,
         local_addr: SocketAddr,
         remote_addr: SocketAddr,
         socket: TcpStream,
@@ -273,7 +273,7 @@ impl SocketHandler {
 
             let connector = Connector::parse(
                 self.remote_addr,
-                self.config,
+                &self.config,
                 self.state,
                 method,
                 uri,

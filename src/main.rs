@@ -65,8 +65,13 @@ async fn main() {
         match tcp_listener.accept().await {
             Ok((socket, addr)) => {
                 let state = state.clone();
-                let handler =
-                    SocketHandler::new(cfg, socket.local_addr().unwrap(), addr, socket, state);
+                let handler = SocketHandler::new(
+                    cfg.clone(),
+                    socket.local_addr().unwrap(),
+                    addr,
+                    socket,
+                    state,
+                );
                 tokio::spawn(handler.run());
             }
             Err(e) => error!("Socket error: {:?}", e),
