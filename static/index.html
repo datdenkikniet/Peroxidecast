@@ -2,21 +2,22 @@
 
 <head>
     <script src="/static/index.js" type="module"></script>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <template id="mount_display">
-    <div hidden class="mount_container" id="rename">
-        <h2 id="name"></h2>
-        <p>Currently online: <span id="on_air"></span></p>
-        <p id="subs"></p>
-        <video controls="" id="stream_url">
+    <div hidden class="rename mount_display">
+        <h2 class="name"></h2>
+        <p>Currently online: <span class="on_air"></span></p>
+        <p class="song_name"></p>
+        <p class="subs"></p>
+        <video controls="" class="stream_url">
         </video>
-        <p id="stream_url_copy_p">Copy the link below to play this stream with VLC:</p>
-        <input type="text" id="stream_url_copy" readonly></a>
+        <p class="stream_url_copy_p">Stream link: <input type="text" class="stream_url_copy" readonly></a></p>
     </div>
 </template>
 
 <body>
     <h1>Hydroxidecast</h1>
-    <div id="mount_container"></div>
+    <div class="mount_container" id="mount_container"></div>
 </body>

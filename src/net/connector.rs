@@ -4,7 +4,7 @@ use std::{
 };
 
 use httparse::Header;
-use log::{debug, info, trace};
+use log::{debug, info, trace, warn};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufReader},
     net::tcp::{OwnedReadHalf, OwnedWriteHalf},
@@ -106,7 +106,7 @@ where
 
         trace!("Parsing TCP request from {:?}", remote);
         if is_admin {
-            info!("{:?} is connecting with admin credentials.", remote);
+            warn!("{:?} is connecting with admin credentials.", remote);
         }
 
         macro_rules! error {
@@ -136,10 +136,9 @@ where
 
             let found_mount = { state.read().await.find_mount(mount_path).cloned() };
             let start_stats = if let Some(mount) = found_mount {
-                trace!(
+                debug!(
                     "{:?} is attempting to become source for existing mount {}",
-                    remote,
-                    mount_path
+                    remote, mount_path
                 );
 
                 let auth = mount.source_auth();
@@ -156,7 +155,7 @@ where
                     mount.set_source(subs_tx, stats_rx, content_type.to_string(), meta);
                 }
 
-                debug!(
+                info!(
                     "{:?} is now sending to existing mount {} with content type {}. Current stats: {:?}",
                     remote,
                     mount_path,
@@ -243,13 +242,13 @@ where
                 ref mut data_rx,
                 content_type,
             } => {
-                debug!(
+                info!(
                     "SUB: {:?} connected to mount {}",
                     self.remote, self.mount_path
                 );
                 let disconnect_reason =
                     Self::run_sink(mount_meta, &mut self.write_half, data_rx, content_type).await;
-                debug!(
+                info!(
                     "SUB: {:?} disconnected from mount {}. Reason: {:?}",
                     self.remote, self.mount_path, disconnect_reason
                 )
@@ -289,6 +288,9 @@ where
         let mut transformed: Vec<&str> = headers.iter().map(|h| h.as_str()).collect();
         let content_type = format!("Content-Type: {}", content_type);
         transformed.push(&content_type);
+
+        let no_cache = "Cache-Control: no-cache";
+        transformed.push(no_cache);
 
         BasicHttpResponse::ok(&transformed).send(write_half).await;
 

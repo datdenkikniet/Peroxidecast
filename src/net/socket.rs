@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, sync::Arc, time::Instant};
 
 use httparse::{Header, Request};
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use tokio::{
     io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader},
     net::{
@@ -167,12 +167,19 @@ impl SocketHandler {
     async fn admin(&mut self, uri: &str, request: Request<'_, '_>) {
         let write_half = &mut self.socket.1;
 
+        trace!("Got admin request: {}", uri);
+
         let auth = if let Some(auth) = find_header(request.headers.iter(), "Authorization") {
             auth
         } else {
             BasicHttpResponse::UNAUTHORIZED.send(write_half).await;
             return;
         };
+
+        let is_admin = self.config.admin_authorization.is_some()
+            && Some(&auth) == self.config.admin_authorization.as_ref();
+
+        info!("{} is using admin credentials.", self.remote_addr);
 
         let uri = &uri["/admin/".len()..];
 
@@ -201,7 +208,10 @@ impl SocketHandler {
                 return;
             };
 
-            if mount.source_auth().is_some() && mount.source_auth() != &Some(auth.into()) {
+            if !is_admin
+                && mount.source_auth().is_some()
+                && mount.source_auth() != &Some(auth.into())
+            {
                 BasicHttpResponse::UNAUTHORIZED.send(write_half).await;
                 return;
             }
@@ -217,6 +227,11 @@ impl SocketHandler {
                 BasicHttpResponse::BAD_REQUEST.send(write_half).await;
                 return;
             };
+
+            info!(
+                "Updating mount {}. Setting song name to {}",
+                mount_name, song
+            );
 
             {
                 let mut state = self.state.write().await;

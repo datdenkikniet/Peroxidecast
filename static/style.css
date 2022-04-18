@@ -1,0 +1,12 @@
+body {
+    color: white;
+    background-color: black;
+    width: 50%;
+    margin: auto;
+    font-family: Roboto sans-serif;
+}
+
+.mount_container {
+    margin: auto;
+    display: block;
+}
