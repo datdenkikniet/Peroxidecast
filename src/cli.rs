@@ -49,6 +49,7 @@ impl Into<Config> for CliArgs {
         let my_config = Config {
             admin_authorization: self.admin_authorization,
             allow_unauthenticated_mounts: self.allow_unauthenticated_mounts,
+            default_stream_url: None,
             mounts: BTreeMap::new(),
         };
 

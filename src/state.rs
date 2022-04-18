@@ -112,6 +112,33 @@ impl IceMeta {
     }
 }
 
+/// The URL prefix that should be used to construct the
+/// final stream's URL
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(tag = "url_type", content = "url_value")]
+pub enum StreamUrl {
+    /// Use the `Host` header sent by the client. If this header is absent,
+    /// the local address of the socket that received the client's
+    /// request is used as fallback
+    #[serde(rename = "host")]
+    Hostname,
+    /// Use the `X-Forwarded-Host` header sent by the client. If this header is
+    /// absent, the value of the `Host` header is used as fallback. If the `Host`
+    /// header is absent as well, the local address of the socket that received the client's
+    /// request is used as fallback
+    #[serde(rename = "x-forwarded-hostname")]
+    XForwardedHostName,
+    /// This static string is used as stream URL
+    #[serde(rename = "static")]
+    Static(String),
+}
+
+impl Default for StreamUrl {
+    fn default() -> Self {
+        Self::XForwardedHostName
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Mount {
     content_type: String,
@@ -122,6 +149,7 @@ pub struct Mount {
     sub_auth: Option<String>,
     song: Option<String>,
     meta: IceMeta,
+    stream_url: Option<StreamUrl>,
 }
 
 impl Mount {
@@ -133,6 +161,7 @@ impl Mount {
         sub_auth: Option<String>,
         permanent: bool,
         meta: IceMeta,
+        stream_url: Option<StreamUrl>,
     ) -> Self {
         Self {
             content_type,
@@ -143,6 +172,7 @@ impl Mount {
             permanent,
             meta,
             song: None,
+            stream_url,
         }
     }
 
@@ -193,6 +223,10 @@ impl Mount {
 
     pub fn song(&self) -> &Option<String> {
         &self.song
+    }
+
+    pub fn stream_url(&self) -> &Option<StreamUrl> {
+        &self.stream_url
     }
 }
 

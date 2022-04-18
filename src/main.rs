@@ -34,6 +34,7 @@ async fn main() {
             config.sub_auth.clone(),
             config.permanent,
             IceMeta::default(),
+            config.stream_url.clone(),
         );
 
         state.add_mount(mount_name.to_string(), mount);

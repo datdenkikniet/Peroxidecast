@@ -4,11 +4,10 @@ allow_unauthenticated_mounts = true
 [mounts."/test1"]
 source_auth = 'source_auth'
 sub_auth = 'sub_auth'
-url_type = 'hostname'
+url_type = 'host'
 permanent = false
 
 [mounts."/test2"]
 source_auth = 'Basic dXNlcm5hbWU6cGFzc3dvcmQ='
-url_type = 'static'
-url_value = 'Here'
+url_type = 'x-forwarded-hostname'
 permanent = true

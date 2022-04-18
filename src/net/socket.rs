@@ -1,6 +1,6 @@
 use std::{net::SocketAddr, sync::Arc};
 
-use httparse::Request;
+use httparse::{Header, Request};
 use log::{debug, trace};
 use tokio::{
     io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader},
@@ -11,7 +11,11 @@ use tokio::{
     sync::RwLock,
 };
 
-use crate::{api::MountInfo, config::Config, state::State};
+use crate::{
+    api::MountInfo,
+    config::Config,
+    state::{State, StreamUrl},
+};
 
 use super::{Connector, CreateConnectorError};
 
@@ -72,6 +76,22 @@ pub struct SocketHandler {
     socket: (BufReader<OwnedReadHalf>, OwnedWriteHalf),
 }
 
+fn find_header<'a>(
+    mut headers: impl Iterator<Item = &'a Header<'a>>,
+    name: &str,
+) -> Option<String> {
+    headers
+        .find(|h| h.name == name)
+        .map(|h| {
+            if let Ok(value) = std::str::from_utf8(h.value) {
+                Some(value.to_string())
+            } else {
+                None
+            }
+        })
+        .flatten()
+}
+
 impl SocketHandler {
     pub fn new(
         config: Config,
@@ -92,18 +112,40 @@ impl SocketHandler {
         }
     }
 
-    async fn mount_info(&mut self, method: &str) {
+    async fn mount_info(&mut self, request: Request<'_, '_>, method: &str) {
         let mut write_half = &mut self.socket.1;
+
         if method == "GET" {
             let json_data: Vec<MountInfo> = self
                 .state
                 .read()
                 .await
                 .mounts()
-                .map(|(n, m)| MountInfo::from_named_mount(&n, m))
+                .map(|(n, m)| {
+                    let stream_url = m
+                        .stream_url()
+                        .clone()
+                        .or(self.config.default_stream_url.clone())
+                        .unwrap_or(StreamUrl::default());
+
+                    let x_forwarded_host = find_header(request.headers.iter(), "X-Forwarded-Host");
+
+                    let host = find_header(request.headers.iter(), "Host")
+                        .unwrap_or(format!("{:?}", self.local_addr));
+
+                    let stream_url = match stream_url {
+                        StreamUrl::Hostname => format!("{}{}", host, n),
+                        StreamUrl::XForwardedHostName => {
+                            format!("{}{}", x_forwarded_host.unwrap_or(host), n)
+                        }
+                        StreamUrl::Static(value) => value,
+                    };
+
+                    MountInfo::from_named_mount(&n, m, stream_url)
+                })
                 .collect();
 
-            if let Ok(string) = serde_json::to_string(&json_data) {
+            if let Ok(string) = serde_json::to_string_pretty(&json_data) {
                 let content_type = "Content-Type: application/json";
                 let content_length = &format!("Content-Length: {}", string.as_bytes().len());
 
@@ -125,12 +167,7 @@ impl SocketHandler {
     async fn admin(&mut self, uri: &str, request: Request<'_, '_>) {
         let write_half = &mut self.socket.1;
 
-        let auth = if let Some(Ok(auth)) = request
-            .headers
-            .iter()
-            .find(|h| h.name == "Authorization")
-            .map(|h| std::str::from_utf8(h.value))
-        {
+        let auth = if let Some(auth) = find_header(request.headers.iter(), "Authorization") {
             auth
         } else {
             BasicHttpResponse::UNAUTHORIZED.send(write_half).await;
@@ -198,7 +235,6 @@ impl SocketHandler {
         let mut request_buffer = Vec::with_capacity(2048);
 
         let read_half = &mut self.socket.0;
-        let write_half = &mut self.socket.1;
 
         let bytes = read_half.read_buf(&mut request_buffer).await.unwrap();
 
@@ -226,18 +262,10 @@ impl SocketHandler {
         };
 
         if uri == "/mount_info" {
-            self.mount_info(method).await;
+            self.mount_info(request, method).await;
         } else if uri.starts_with("/admin/") {
             self.admin(uri, request).await;
             return;
-        } else if uri.ends_with(".m3u") {
-            BasicHttpResponse::ok(&["Content-Type: audio/x-mpegurl"])
-                .send(write_half)
-                .await;
-            write_half
-                .write_all(format!("http://localhost:8080/{}", &uri[..uri.len() - 4]).as_bytes())
-                .await
-                .ok();
         } else {
             let content_type = if let Some(value) = request
                 .headers

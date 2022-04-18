@@ -95,7 +95,6 @@ where
         T: std::fmt::Debug,
     {
         let authorization = authorization.map(|s| s.to_string());
-        trace!("Parsing TCP request from {:?}", remote);
 
         let is_admin = authorization
             .as_ref()
@@ -104,6 +103,11 @@ where
                     && Some(a) == config.admin_authorization.as_ref()
             })
             .unwrap_or(false);
+
+        trace!("Parsing TCP request from {:?}", remote);
+        if is_admin {
+            info!("{:?} is connecting with admin credentials.", remote);
+        }
 
         macro_rules! error {
             ($variant: tt) => {
@@ -133,7 +137,7 @@ where
             let found_mount = { state.read().await.find_mount(mount_path).cloned() };
             let start_stats = if let Some(mount) = found_mount {
                 trace!(
-                    "{:?} is attempting to connect to existing mount {}",
+                    "{:?} is attempting to become source for existing mount {}",
                     remote,
                     mount_path
                 );
@@ -146,14 +150,14 @@ where
                 if mount.is_connected() {
                     error!(MountHasSource(mount_path.to_string()));
                 } else {
-                    trace!("{:?} ICE metadata: {:?}", remote, meta);
+                    trace!("SOURCE: {:?} ICE metadata: {:?}", remote, meta);
                     let mut state = state.write().await;
                     let mount = state.find_mount_mut(mount_path).unwrap();
                     mount.set_source(subs_tx, stats_rx, content_type.to_string(), meta);
                 }
 
                 debug!(
-                    "{:?} is now sending to existing mount {}. Set content type to {}. Current stats: {:?}",
+                    "{:?} is now sending to existing mount {} with content type {}. Current stats: {:?}",
                     remote,
                     mount_path,
                     content_type,
@@ -162,7 +166,7 @@ where
 
                 mount.stats()
             } else {
-                trace!("{:?} ICE metadata: {:?}", remote, meta);
+                trace!("SOURCE: {:?} ICE metadata : {:?}", remote, meta);
 
                 if !is_admin && !config.allow_unauthenticated_mounts {
                     error!(Unauthorized);
@@ -176,6 +180,7 @@ where
                     None,
                     false,
                     meta,
+                    None,
                 );
 
                 {

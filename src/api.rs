@@ -6,7 +6,7 @@ use crate::state::{IceMeta, Mount};
 pub struct MountInfo {
     name: String,
     subscribers: usize,
-    m3u_url: String,
+    stream_url: String,
     bytes_out: usize,
     bytes_in: usize,
     on_air: bool,
@@ -16,14 +16,14 @@ pub struct MountInfo {
 }
 
 impl MountInfo {
-    pub fn from_named_mount(name: &str, mount: &Mount) -> Self {
+    pub fn from_named_mount(name: &str, mount: &Mount, stream_url: String) -> Self {
         let stats = mount.stats();
         MountInfo {
             name: name.to_string(),
             subscribers: stats.sub_count,
+            stream_url,
             bytes_in: stats.bytes_in,
             bytes_out: stats.bytes_out,
-            m3u_url: name.to_string(),
             metadata: mount.metadata(),
             on_air: mount.is_connected(),
             song: mount.song().clone(),
