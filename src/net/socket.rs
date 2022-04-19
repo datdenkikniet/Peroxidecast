@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, sync::Arc, time::Instant};
 
 use httparse::{Header, Request};
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use tokio::{
     io::{AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader},
     net::{
@@ -207,6 +207,7 @@ impl SocketHandler {
                 };
                 mount
             } else {
+                error!("Could not find mount name for admin request.");
                 BasicHttpResponse::BAD_REQUEST.send(write_half).await;
                 return;
             };
@@ -244,6 +245,7 @@ impl SocketHandler {
                     .map(|m| m.1.set_song(song.to_string()));
             }
         } else {
+            error!("Unknown admin request. {}", uri);
             BasicHttpResponse::BAD_REQUEST.send(write_half).await;
         }
     }
