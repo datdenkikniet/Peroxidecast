@@ -167,7 +167,7 @@ impl SocketHandler {
     async fn admin(&mut self, uri: &str, request: Request<'_, '_>) {
         let write_half = &mut self.socket.1;
 
-        trace!("Got admin request: {}", uri);
+        info!("Got admin request: {}", uri);
 
         let auth = if let Some(auth) = find_header(request.headers.iter(), "Authorization") {
             auth
@@ -185,7 +185,10 @@ impl SocketHandler {
 
         if uri.starts_with("metadata?") {
             let values = &uri["metadata?".len()..].split("&");
-            trace!("{}", values.clone().collect::<String>());
+            trace!(
+                "Admin metadata request: {}",
+                values.clone().collect::<String>()
+            );
 
             let find_key = |name: &str| {
                 values.clone().find(|v| v.starts_with(name)).map(|v| {

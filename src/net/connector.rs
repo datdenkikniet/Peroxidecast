@@ -104,7 +104,7 @@ where
             })
             .unwrap_or(false);
 
-        trace!("Parsing TCP request from {:?}", remote);
+        debug!("Parsing TCP request from {:?}", remote);
         if is_admin {
             warn!("{:?} is connecting with admin credentials.", remote);
         }
@@ -143,6 +143,10 @@ where
 
                 let auth = mount.source_auth();
                 if !is_admin && !auth.is_none() && auth != &authorization.map(|v| v.to_string()) {
+                    warn!(
+                        "{:?} was not authorized to become a source for mount {}",
+                        remote, mount_path
+                    );
                     error!(Unauthorized);
                 }
 
@@ -165,9 +169,17 @@ where
 
                 mount.stats()
             } else {
-                trace!("SOURCE: {:?} ICE metadata : {:?}", remote, meta);
+                debug!(
+                    "{:?} is attempting to create and become source for mount {}",
+                    remote, mount_path
+                );
+                debug!("SOURCE: {:?} ICE metadata : {:?}", remote, meta);
 
                 if !is_admin && !config.allow_unauthenticated_mounts {
+                    warn!(
+                        "{:?} was not authorized to become a source for mount {}",
+                        remote, mount_path
+                    );
                     error!(Unauthorized);
                 }
 
@@ -187,7 +199,7 @@ where
                     state.add_mount(mount_path.to_string(), mount);
                 }
 
-                debug!(
+                info!(
                     "Created mount {} with content type {}.",
                     mount_path, content_type
                 );
